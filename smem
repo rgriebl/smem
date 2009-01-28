@@ -1,0 +1,96 @@
+import re, os, sys, pwd
+
+def pids():
+    '''get a list of processes'''
+    for e in os.listdir("/proc"):
+        if e.isdigit():
+            yield int(e)
+
+_rangepat = re.compile(r'([a-f\d]+)-([a-f\d]+)\s+(....)\s+([a-f\d]+)\s+(\S+)\s+(\d+)\s+(\S*)')
+_fieldpat = re.compile(r'(\w+):\s+(\d+) kB')
+
+def pidmaps(pid):
+    maps = {}
+    start = None
+    for l in file('/proc/%s/smaps' % pid):
+        m = _fieldpat.match(l)
+        if m:
+            field, val = m.groups()
+            maps[start][field.lower()] = int(val)
+            continue
+
+        m = _rangepat.match(l)
+        if m:
+            start, end, mode, offset, device, inode, name = m.groups()
+            d = dict(end=int(end, 16), mode=mode, offset=int(offset, 16),
+                     device=device, inode=inode, name=name)
+            start = int(start, 16)
+            maps[start] = d
+            continue
+
+    return maps
+
+def pidtotals(pid):
+    maps = pidmaps(pid)
+    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
+             private_clean=0, private_dirty=0, referenced=0, swap=0)
+    for m in maps:
+        for k in t:
+            if pid == 31694: # and k == 'pss':
+                print m, k, maps[m].get(k, 0), t[k]
+            t[k] += maps[m].get(k, 0)
+    t['maps'] = len(maps)
+    return t
+
+def processtotals(pids):
+    totals = {}
+    for pid in pids:
+        totals[pid] = pidtotals(pid)
+    return totals
+
+def maptotals():
+    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
+             private_clean=0, private_dirty=0, referenced=0, swap=0)
+
+def sortmaps(totals, key):
+    l = []
+    for pid in totals:
+        l.append((totals[pid][key], pid))
+    l.sort()
+    return [pid for pid,key in l]
+
+def pidname(pid):
+    l = file('/proc/%d/stat' % pid).read()
+    return l[l.find('(') + 1: l.find(')')]
+
+def pidcmd(pid):
+    return file('/proc/%d/cmdline').read()
+
+def piduser(pid):
+    return os.stat('/proc/%d/cmdline').st_uid
+
+def piduser(pid):
+    return os.stat('/proc/%d/cmdline').st_gid
+
+def memory():
+    t = {}
+    for l in file('/proc/meminfo'):
+        m = _fieldpat.match(l)
+        if m:
+            t[m.group(1).lower()] = int(m.group(2))
+    return t
+
+def showpids():
+    p = list(pids())
+    p.sort()
+    pt = processtotals(p)
+    for n in p:
+        print n, pidname(n), pt[n]['pss']
+
+#pt = processtotals()
+#t = sum([pt[n]['pss'] for n in pt])
+#print sortmaps(pt, 'pss')[-10:]
+#print os.getpid(), pidtotals(os.getpid())['pss'], len(list(pids()))
+#print memory()['memtotal'], t
+
+showpids()
