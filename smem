@@ -26,9 +26,8 @@ def pidmaps(pid):
 
 def pidtotals(pid):
     maps = pidmaps(pid)
-#    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
-#             private_clean=0, private_dirty=0, referenced=0, swap=0)
-    t = dict(pss=0)
+    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
+             private_clean=0, private_dirty=0, referenced=0, swap=0)
     for m in maps.iterkeys():
         for k in t:
             t[k] += maps[m].get(k, 0)
@@ -79,7 +78,25 @@ def memory():
 def showpids():
     p = pids()
     pt = processtotals(p)
+
+    fields = dict(
+        pid=('PID', lambda n: n, '% 6s', lambda: len(pids)),
+        user=('User', piduser, '%-8s', None),
+        name=('Command', pidname, '%-30s', None),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', None),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', None),
+        )
+    columns = 'pid user name pss rss'.split()
+
+    header = ""
+    format = ""
+    for n in columns:
+        f = fields[n][2]
+        format += f + " "
+        header += f % fields[n][0] + " "
+
+    print header
     for n in p:
-        print "% 6d %-8s %-30s % 8d" % (n, piduser(n), pidname(n), pt[n]['pss'])
+        print format % tuple([fields[f][1](n) for f in columns])
 
 showpids()
