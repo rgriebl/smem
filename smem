@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import re, os, sys, pwd, getopt
+import re, os, sys, pwd, grp, optparse
 
 def pids():
     '''get a list of processes'''
@@ -58,8 +58,15 @@ def pidname(pid):
     l = file('/proc/%d/stat' % pid).read()
     return l[l.find('(') + 1: l.find(')')]
 
+def pidname(pid):
+    l = file('/proc/%d/stat' % pid).read()
+    return l[l.find('(') + 1: l.find(')')]
+
 def pidcmd(pid):
-    return file('/proc/%d/cmdline').read()
+    c = file('/proc/%d/cmdline' % pid).read()[:-1]
+    if not c:
+        return pidname(pid)
+    return c.replace('\0', ' ')
 
 def piduser(pid):
     return os.stat('/proc/%d/cmdline' % pid).st_uid
@@ -75,19 +82,61 @@ def memory():
             t[m.group(1).lower()] = int(m.group(2))
     return t
 
+def units(x):
+    if x > 1024:
+        x >>= 10
+        if x > 1024:
+            x >>= 10
+            if x > 1024:
+                x >>= 10
+                return x + "G"
+            return x + "M"
+        return x + "K"
+    return x
+
+_ucache = {}
+def username(uid):
+    if uid not in _ucache:
+        _ucache[uid] = pwd.getpwuid(uid)[0]
+    return _ucache[uid]
+
+_gcache = {}
+def groupname(gid):
+    if gid not in _gcache:
+        _gcache[gid] = grp.getgrgid(gid)[0]
+    return _gcache[gid]
+
 def showpids():
     p = pids()
     pt = processtotals(p)
 
-    fields = dict(
-        pid=('PID', lambda n: n, '% 6s', lambda: len(pids)),
-        user=('User', piduser, '%-8s', None),
-        name=('Command', pidname, '%-30s', None),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', None),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', None),
-        )
-    columns = 'pid user name pss rss'.split()
+    def showuser(p):
+        if options.numeric:
+            return piduser(p)
+        return username(piduser(p))
 
+    def showsize(field):
+        if numeric:
+            return lambda n: pt[n][field]
+        return lambda n: units(pt[n][field])
+
+    fields = dict(
+        pid=('PID', lambda n: n, '% 5s', lambda x: len(p)),
+        uid=('UID', username, '%-5s', None),
+        user=('User', showuser, '%-8s', None),
+        name=('Name', pidname, '%-24.24s', None),
+        command=('Command', pidcmd, '%-24.24s', None),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8s', sum),
+        uss=('USS', lambda n: pt[n]['private_clean']
+             + pt[n]['private_dirty'], '% 8s', sum),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', sum),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', sum),
+        )
+    columns = options.columns or 'pid user command swap uss pss rss'
+
+    showtable(p, fields, columns.split(), options.sort or 'pss')
+
+def showtable(rows, fields, columns, sort):
     header = ""
     format = ""
     for n in columns:
@@ -95,8 +144,55 @@ def showpids():
         format += f + " "
         header += f % fields[n][0] + " "
 
-    print header
-    for n in p:
-        print format % tuple([fields[f][1](n) for f in columns])
+    l = []
+    for n in rows:
+        r = [fields[c][1](n) for c in columns]
+        l.append((fields[sort][1](n), r))
+
+    l.sort()
+
+    if not options.no_header:
+        print header
+
+    for k,r in l:
+        print format % tuple(r)
+
+    if options.totals:
+        # totals
+        t = []
+        for c in columns:
+            f = fields[c][3]
+            if f:
+                t.append(f([fields[c][1](n) for n in rows]))
+            else:
+                t.append("")
+
+        print "-" * len(header)
+        print format % tuple(t)
+
+# todo
+#  fix disappearing dirs
+#  show unknowns
+
+# options
+#  columns
+#  numeric
+#  sort order
+
+parser = optparse.OptionParser("%prog [options]")
+parser.add_option("-H", "--no-header", action="store_true",
+    help="disable header line")
+parser.add_option("-n", "--numeric", action="store_true",
+    help="numeric output")
+parser.add_option("-s", "--sort", type="str",
+    help="field to sort on")
+parser.add_option("-t", "--totals", action="store_true",
+    help="show totals")
+parser.add_option("-c", "--columns", type="str",
+    help="columns to show")
+
+defaults = {}
+parser.set_defaults(**defaults)
+(options, args) = parser.parse_args()
 
 showpids()
