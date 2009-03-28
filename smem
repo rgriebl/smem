@@ -3,7 +3,7 @@ import re, os, sys, pwd, grp, optparse, errno
 
 def pids():
     '''get a list of processes'''
-    return [int(e) for e in os.listdir("/proc") if e.isdigit()]
+    return [int(e) for e in os.listdir("/proc") if e.isdigit() and not iskernel(e)]
 
 def pidmaps(pid):
     maps = {}
@@ -50,18 +50,15 @@ def sortmaps(totals, key):
     l.sort()
     return [pid for pid,key in l]
 
-def pidname(pid):
-    l = file('/proc/%d/stat' % pid).read()
-    return l[l.find('(') + 1: l.find(')')]
+def iskernel(pid):
+    return pidcmd(pid) == ""
 
 def pidname(pid):
     l = file('/proc/%d/stat' % pid).read()
     return l[l.find('(') + 1: l.find(')')]
 
 def pidcmd(pid):
-    c = file('/proc/%d/cmdline' % pid).read()[:-1]
-    if not c:
-        return pidname(pid)
+    c = file('/proc/%s/cmdline' % pid).read()[:-1]
     return c.replace('\0', ' ')
 
 def piduser(pid):
@@ -79,16 +76,14 @@ def memory():
     return t
 
 def units(x):
-    if x > 1024:
-        x >>= 10
-        if x > 1024:
-            x >>= 10
-            if x > 1024:
-                x >>= 10
-                return x + "G"
-            return x + "M"
-        return x + "K"
-    return x
+    s = ''
+    if x == 0:
+        return '0'
+    for s in ('', 'K', 'M', 'G'):
+        if x < 1024:
+            break
+        x /= 1024.0
+    return "%.1f%s" % (x, s)
 
 _ucache = {}
 def username(uid):
@@ -101,6 +96,11 @@ def groupname(gid):
     if gid not in _gcache:
         _gcache[gid] = grp.getgrgid(gid)[0]
     return _gcache[gid]
+
+def showamount(a):
+    if options.abbreviate:
+        return units(a * 1024)
+    return a
 
 def showpids():
     p = pids()
@@ -116,11 +116,11 @@ def showpids():
         user=('User', showuser, '%-8s', lambda x: len(dict.fromkeys(x))),
         name=('Name', pidname, '%-24.24s', None),
         command=('Command', pidcmd, '%-27.27s', None),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8s', sum),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8s', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', sum),
+             + pt[n]['private_dirty'], '% 8a', sum),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
         )
     columns = options.columns or 'pid user command swap uss pss rss'
 
@@ -155,11 +155,11 @@ def showmaps():
     fields = dict(
         map=('Map', lambda n: n, '%-24.24s', len),
         count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8s', sum),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8s', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', sum),
+             + pt[n]['private_dirty'], '% 8a', sum),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
         )
     columns = options.columns or 'map count swap uss pss rss'
 
@@ -200,11 +200,11 @@ def showusers():
     fields = dict(
         user=('User', showuser, '%-8s', None),
         count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8s', sum),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8s', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8s', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8s', sum),
+             + pt[n]['private_dirty'], '% 8a', sum),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
         )
     columns = options.columns or 'user count swap uss pss rss'
 
@@ -213,10 +213,19 @@ def showusers():
 def showtable(rows, fields, columns, sort):
     header = ""
     format = ""
+    formatter = []
     for n in columns:
         f = fields[n][2]
+        if 'a' in f:
+            formatter.append(showamount)
+            f = f.replace('a', 's')
+        else:
+            formatter.append(lambda x: x)
         format += f + " "
         header += f % fields[n][0] + " "
+
+    if not options.no_header:
+        print header
 
     l = []
     for n in rows:
@@ -225,11 +234,8 @@ def showtable(rows, fields, columns, sort):
 
     l.sort(reverse=bool(options.reverse))
 
-    if not options.no_header:
-        print header
-
     for k,r in l:
-        print format % tuple(r)
+        print format % tuple([f(v) for f,v in zip(formatter, r)])
 
     if options.totals:
         # totals
@@ -242,7 +248,7 @@ def showtable(rows, fields, columns, sort):
                 t.append("")
 
         print "-" * len(header)
-        print format % tuple(t)
+        print format % tuple([f(v) for f,v in zip(formatter, t)])
 
 parser = optparse.OptionParser("%prog [options]")
 parser.add_option("-H", "--no-header", action="store_true",
@@ -261,6 +267,11 @@ parser.add_option("-u", "--users", action="store_true",
                   help="show users")
 parser.add_option("-r", "--reverse", action="store_true",
                   help="reverse sort")
+parser.add_option("-p", "--percent", action="store_true",
+                  help="show percentage")
+parser.add_option("-k", "--abbreviate", action="store_true",
+                  help="show unit suffixes")
+
 
 defaults = {}
 parser.set_defaults(**defaults)
