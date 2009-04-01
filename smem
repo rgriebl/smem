@@ -1,6 +1,16 @@
 #!/usr/bin/python
 import re, os, sys, pwd, grp, optparse, errno
 
+_totalmem = 0
+def totalmem():
+    global _totalmem
+    if not _totalmem:
+        if options.realmem:
+            _totalmem = fromunits(options.realmem)
+        else:
+            _totalmem = memory()['memtotal']
+    return _totalmem
+
 def pids():
     '''get a list of processes'''
     return [int(e) for e in os.listdir("/proc") if e.isdigit() and not iskernel(e)]
@@ -69,10 +79,13 @@ def pidgroup(pid):
 
 def memory():
     t = {}
+    f = re.compile('(\\S+):\\s+(\\d+) kB')
     for l in file('/proc/meminfo'):
-        m = _fieldpat.match(l)
+        print l
+        m = f.match(l)
         if m:
-            t[m.group(1).lower()] = int(m.group(2))
+            t[m.group(1).lower()] = int(m.group(2)) * 1024
+    print t
     return t
 
 def units(x):
@@ -84,6 +97,14 @@ def units(x):
             break
         x /= 1024.0
     return "%.1f%s" % (x, s)
+
+def fromunits(x):
+    s = dict(k=2**10, K=2**10, kB=2**10, KB=2**10,
+             M=2**20, MB=2**20, G=2**30, GB=2**30)
+    for k,v in s.items():
+        if x.endswith(k):
+            print k, int(float(x[:len(k)])*v)
+            return int(float(x[:len(k)])*v)
 
 _ucache = {}
 def username(uid):
@@ -100,6 +121,8 @@ def groupname(gid):
 def showamount(a):
     if options.abbreviate:
         return units(a * 1024)
+    elif options.percent:
+        return "%.2f%%" % (102400.0 * a / totalmem())
     return a
 
 def showpids():
@@ -261,6 +284,8 @@ parser.add_option("-t", "--totals", action="store_true",
                   help="show totals")
 parser.add_option("-c", "--columns", type="str",
                   help="columns to show")
+parser.add_option("", "--realmem", type="str",
+                  help="amount of physical RAM")
 parser.add_option("-m", "--mappings", action="store_true",
                   help="show mappings")
 parser.add_option("-u", "--users", action="store_true",
