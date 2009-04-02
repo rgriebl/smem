@@ -146,6 +146,7 @@ def showpids():
         user=('User', showuser, '%-8s', lambda x: len(dict.fromkeys(x))),
         name=('Name', pidname, '%-24.24s', None),
         command=('Command', pidcmd, '%-27.27s', None),
+        maps=('Maps',lambda n: pt[n]['maps'], '% 5s', sum),
         swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['uss'], '% 8a', sum),
         rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
