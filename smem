@@ -34,16 +34,6 @@ def pidmaps(pid):
 
     return maps
 
-def pidtotals(pid):
-    maps = pidmaps(pid)
-    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
-             private_clean=0, private_dirty=0, referenced=0, swap=0)
-    for m in maps.iterkeys():
-        for k in t:
-            t[k] += maps[m].get(k, 0)
-    t['maps'] = len(maps)
-    return t
-
 def processtotals(pids):
     totals = {}
     for pid in pids:
@@ -81,11 +71,9 @@ def memory():
     t = {}
     f = re.compile('(\\S+):\\s+(\\d+) kB')
     for l in file('/proc/meminfo'):
-        print l
         m = f.match(l)
         if m:
             t[m.group(1).lower()] = int(m.group(2)) * 1024
-    print t
     return t
 
 def units(x):
@@ -125,6 +113,25 @@ def showamount(a):
         return "%.2f%%" % (102400.0 * a / totalmem())
     return a
 
+def pidtotals(pid):
+    maps = pidmaps(pid)
+    t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
+             private_clean=0, private_dirty=0, referenced=0, swap=0)
+    for m in maps.iterkeys():
+        for k in t:
+            t[k] += maps[m].get(k, 0)
+
+    t['uss'] = t['private_clean'] + t['private_dirty']
+    t['arss'] = t['apss'] = t['auss'] = t['avss'] = 0
+    for m in maps.iterkeys():
+        if maps[m]['name'] in ('<anonymous>', '[heap]', '[stack]'):
+            t['auss'] += maps[m].get('private_clean', 0) + maps[m].get('private_dirty', 0)
+            t['arss'] += maps[m].get('rss', 0)
+            t['apss'] += maps[m].get('pss', 0)
+            t['avss'] += maps[m].get('size', 0)
+    t['maps'] = len(maps)
+    return t
+
 def showpids():
     p = pids()
     pt = processtotals(p)
@@ -140,10 +147,14 @@ def showpids():
         name=('Name', pidname, '%-24.24s', None),
         command=('Command', pidcmd, '%-27.27s', None),
         swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
-        uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8a', sum),
+        uss=('USS', lambda n: pt[n]['uss'], '% 8a', sum),
         rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
         pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
+        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
+        auss=('AUSS', lambda n: pt[n]['auss'], '% 8a', sum),
+        arss=('ARSS', lambda n: pt[n]['arss'], '% 8a', sum),
+        apss=('APSS', lambda n: pt[n]['apss'], '% 8a', sum),
+        avss=('AVSS', lambda n: pt[n]['avss'], '% 8a', sum),
         )
     columns = options.columns or 'pid user command swap uss pss rss'
 
