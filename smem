@@ -150,7 +150,9 @@ def processtotals(pids):
                 filter(options.userfilter, pid, pidusername)):
             continue
         try:
-            totals[pid] = pidtotals(pid)
+            p = pidtotals(pid)
+            if p['maps'] != 0:
+                totals[pid] = p
         except:
             continue
     return totals
@@ -214,7 +216,7 @@ def showmaps():
     pt = maptotals(p)
 
     fields = dict(
-        map=('Map', lambda n: n, '%-24.24s', len),
+        map=('Map', lambda n: n, '%-40.40s', len),
         count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
         swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['private_clean']
@@ -229,7 +231,7 @@ def showmaps():
         avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['count']),
                 '% 8a', sum),
         )
-    columns = options.columns or 'map count swap uss avgpss pss rss'
+    columns = options.columns or 'map count avgpss pss'
 
     showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
@@ -241,6 +243,8 @@ def usertotals(pids):
             continue
         try:
             maps = pidmaps(pid)
+            if len(maps) == 0:
+                continue
         except:
             raise
         user = piduser(pid)
@@ -355,8 +359,6 @@ parser.add_option("-p", "--percent", action="store_true",
                   help="show percentage")
 parser.add_option("-k", "--abbreviate", action="store_true",
                   help="show unit suffixes")
-
-
 
 defaults = {}
 parser.set_defaults(**defaults)
