@@ -32,16 +32,14 @@ def pidmaps(pid):
                                offset=int(f[2], 16),
                                device=f[3], inode=f[4], name=name)
 
-    return maps
+    if options.mapfilter:
+        f = {}
+        for m in maps:
+            if not filter(options.mapfilter, m, lambda x: maps[x]['name']):
+                f[m] = maps[m]
+        return f
 
-def processtotals(pids):
-    totals = {}
-    for pid in pids:
-        try:
-            totals[pid] = pidtotals(pid)
-        except:
-            continue
-    return totals
+    return maps
 
 def sortmaps(totals, key):
     l = []
@@ -100,6 +98,9 @@ def username(uid):
         _ucache[uid] = pwd.getpwuid(uid)[0]
     return _ucache[uid]
 
+def pidusername(pid):
+    return username(piduser(pid))
+
 _gcache = {}
 def groupname(gid):
     if gid not in _gcache:
@@ -112,6 +113,15 @@ def showamount(a):
     elif options.percent:
         return "%.2f%%" % (102400.0 * a / totalmem())
     return a
+
+def filter(opt, arg, *sources):
+    if not opt:
+        return False
+
+    for f in sources:
+        if re.search(opt, f(arg)):
+            return False
+    return True
 
 def pidtotals(pid):
     maps = pidmaps(pid)
@@ -130,7 +140,20 @@ def pidtotals(pid):
             t['apss'] += maps[m].get('pss', 0)
             t['avss'] += maps[m].get('size', 0)
     t['maps'] = len(maps)
+
     return t
+
+def processtotals(pids):
+    totals = {}
+    for pid in pids:
+        if (filter(options.processfilter, pid, pidname, pidcmd) or
+                filter(options.userfilter, pid, pidusername)):
+            continue
+        try:
+            totals[pid] = pidtotals(pid)
+        except:
+            continue
+    return totals
 
 def showpids():
     p = pids()
@@ -139,7 +162,7 @@ def showpids():
     def showuser(p):
         if options.numeric:
             return piduser(p)
-        return username(piduser(p))
+        return pidusername(p)
 
     fields = dict(
         pid=('PID', lambda n: n, '% 5s', lambda x: len(p)),
@@ -159,11 +182,14 @@ def showpids():
         )
     columns = options.columns or 'pid user command swap uss pss rss'
 
-    showtable(p, fields, columns.split(), options.sort or 'pss')
+    showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
 def maptotals(pids):
     totals = {}
     for pid in pids:
+        if (filter(options.processfilter, pid, pidname, pidcmd) or
+                filter(options.userfilter, pid, pidusername)):
+            continue
         try:
             maps = pidmaps(pid)
             for m in maps.iterkeys():
@@ -195,14 +221,24 @@ def showmaps():
              + pt[n]['private_dirty'], '% 8a', sum),
         rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
         pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
+        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
+        avgpss=('AVGPSS', lambda n: int(1.0 * pt[n]['pss']/pt[n]['count']),
+                '% 8a', sum),
+        avguss=('AVGUSS', lambda n: int(1.0 * pt[n]['uss']/pt[n]['count']),
+                '% 8a', sum),
+        avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['count']),
+                '% 8a', sum),
         )
-    columns = options.columns or 'map count swap uss pss rss'
+    columns = options.columns or 'map count swap uss avgpss pss rss'
 
     showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
 def usertotals(pids):
     totals = {}
     for pid in pids:
+        if (filter(options.processfilter, pid, pidname, pidcmd) or
+                filter(options.userfilter, pid, pidusername)):
+            continue
         try:
             maps = pidmaps(pid)
         except:
@@ -227,10 +263,10 @@ def showusers():
     p = pids()
     pt = usertotals(p)
 
-    def showuser(p):
+    def showuser(u):
         if options.numeric:
-            return p
-        return username(p)
+            return u
+        return username(u)
 
     fields = dict(
         user=('User', showuser, '%-8s', None),
@@ -288,26 +324,38 @@ def showtable(rows, fields, columns, sort):
 parser = optparse.OptionParser("%prog [options]")
 parser.add_option("-H", "--no-header", action="store_true",
                   help="disable header line")
-parser.add_option("-n", "--numeric", action="store_true",
-                  help="numeric output")
-parser.add_option("-s", "--sort", type="str",
-                  help="field to sort on")
-parser.add_option("-t", "--totals", action="store_true",
-                  help="show totals")
 parser.add_option("-c", "--columns", type="str",
                   help="columns to show")
+parser.add_option("-t", "--totals", action="store_true",
+                  help="show totals")
+
 parser.add_option("", "--realmem", type="str",
                   help="amount of physical RAM")
+
 parser.add_option("-m", "--mappings", action="store_true",
                   help="show mappings")
 parser.add_option("-u", "--users", action="store_true",
                   help="show users")
+
+parser.add_option("-P", "--processfilter", type="str",
+                  help="process filter regex")
+parser.add_option("-M", "--mapfilter", type="str",
+                  help="map filter regex")
+parser.add_option("-U", "--userfilter", type="str",
+                  help="user filter regex")
+
+parser.add_option("-n", "--numeric", action="store_true",
+                  help="numeric output")
+parser.add_option("-s", "--sort", type="str",
+                  help="field to sort on")
 parser.add_option("-r", "--reverse", action="store_true",
                   help="reverse sort")
+
 parser.add_option("-p", "--percent", action="store_true",
                   help="show percentage")
 parser.add_option("-k", "--abbreviate", action="store_true",
                   help="show unit suffixes")
+
 
 
 defaults = {}
