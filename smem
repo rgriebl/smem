@@ -106,7 +106,6 @@ def fromunits(x):
              M=2**20, MB=2**20, G=2**30, GB=2**30)
     for k,v in s.items():
         if x.endswith(k):
-            print k, int(float(x[:len(k)])*v)
             return int(float(x[:len(k)])*v)
 
 _ucache = {}
@@ -306,6 +305,12 @@ def showtable(rows, fields, columns, sort):
     header = ""
     format = ""
     formatter = []
+
+    if options.pie:
+        columns.append(options.pie)
+    if options.bar:
+        columns.append(options.bar)
+
     for n in columns:
         f = fields[n][2]
         if 'a' in f:
@@ -316,15 +321,53 @@ def showtable(rows, fields, columns, sort):
         format += f + " "
         header += f % fields[n][0] + " "
 
-    if not options.no_header:
-        print header
-
     l = []
     for n in rows:
         r = [fields[c][1](n) for c in columns]
         l.append((fields[sort][1](n), r))
 
     l.sort(reverse=bool(options.reverse))
+
+    if options.pie:
+        if (l[0][0] < l[-1][0]):
+            l.reverse()
+        try:
+            import pylab
+        except ImportError:
+            sys.write.stderr("pie chart requires matplotlib")
+            sys.exit(-1)
+
+        labels = [r[1][-1] for r in l]
+        values = [r[0] for r in l] # sort field
+
+        tm = totalmem() / 1024
+        s = sum(values)
+        unused = tm - s
+        t = 0
+        while t + values[-1] < (tm * .02) or values[-1] < (tm * .005):
+            t += values.pop()
+            labels.pop()
+        if t:
+            values.append(t)
+            labels.append('other')
+
+        explode = [0] * len(values)
+        if unused > 0:
+            values.insert(0, unused)
+            labels.insert(0, 'unused')
+            explode.insert(0, .05)
+
+        print len(values), len(labels), len(explode)
+
+        pylab.figure(1, figsize=(6,6))
+        ax = pylab.axes([0.1, 0.1, 0.8, 0.8])
+        pylab.pie(values, explode = explode, labels=labels,
+                  autopct="%.2f%%", shadow=True)
+        pylab.show()
+        sys.exit(1)
+
+    if not options.no_header:
+        print header
 
     for k,r in l:
         print format % tuple([f(v) for f,v in zip(formatter, r)])
@@ -376,6 +419,12 @@ parser.add_option("-p", "--percent", action="store_true",
                   help="show percentage")
 parser.add_option("-k", "--abbreviate", action="store_true",
                   help="show unit suffixes")
+
+parser.add_option("", "--pie", type='str',
+                  help="show pie graph")
+parser.add_option("", "--bar", type='str',
+                  help="show bar graph")
+
 
 defaults = {}
 parser.set_defaults(**defaults)
