@@ -148,13 +148,6 @@ def pidtotals(pid):
             t[k] += maps[m].get(k, 0)
 
     t['uss'] = t['private_clean'] + t['private_dirty']
-    t['arss'] = t['apss'] = t['auss'] = t['avss'] = 0
-    for m in maps.iterkeys():
-        if maps[m]['name'] in ('<anonymous>', '[heap]', '[stack]'):
-            t['auss'] += maps[m].get('private_clean', 0) + maps[m].get('private_dirty', 0)
-            t['arss'] += maps[m].get('rss', 0)
-            t['apss'] += maps[m].get('pss', 0)
-            t['avss'] += maps[m].get('size', 0)
     t['maps'] = len(maps)
 
     return t
@@ -193,10 +186,6 @@ def showpids():
         rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
         pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
         vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
-        auss=('AUSS', lambda n: pt[n]['auss'], '% 8a', sum),
-        arss=('ARSS', lambda n: pt[n]['arss'], '% 8a', sum),
-        apss=('APSS', lambda n: pt[n]['apss'], '% 8a', sum),
-        avss=('AVSS', lambda n: pt[n]['avss'], '% 8a', sum),
         )
     columns = options.columns or 'pid user command swap uss pss rss'
 
@@ -210,18 +199,22 @@ def maptotals(pids):
             continue
         try:
             maps = pidmaps(pid)
+            seen = {}
             for m in maps.iterkeys():
                 name = maps[m]['name']
                 if name not in totals:
                     t = dict(size=0, rss=0, pss=0, shared_clean=0,
                              shared_dirty=0, private_clean=0, count=0,
-                             private_dirty=0, referenced=0, swap=0)
+                             private_dirty=0, referenced=0, swap=0, pids=0)
                 else:
                     t = totals[name]
 
                 for k in t:
                     t[k] += maps[m].get(k, 0)
                 t['count'] += 1
+                if name not in seen:
+                    t['pids'] += 1
+                    seen[name] = 1
                 totals[name] = t
         except:
             raise
@@ -234,17 +227,18 @@ def showmaps():
     fields = dict(
         map=('Map', lambda n: n, '%-40.40s', len),
         count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
+        pids=('PIDs', lambda n: pt[n]['pids'], '% 5s', sum),
         swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
         uss=('USS', lambda n: pt[n]['private_clean']
              + pt[n]['private_dirty'], '% 8a', sum),
         rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
         pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
         vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
-        avgpss=('AVGPSS', lambda n: int(1.0 * pt[n]['pss']/pt[n]['count']),
+        avgpss=('AVGPSS', lambda n: int(1.0 * pt[n]['pss']/pt[n]['pids']),
                 '% 8a', sum),
-        avguss=('AVGUSS', lambda n: int(1.0 * pt[n]['uss']/pt[n]['count']),
+        avguss=('AVGUSS', lambda n: int(1.0 * pt[n]['uss']/pt[n]['pids']),
                 '% 8a', sum),
-        avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['count']),
+        avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['pids']),
                 '% 8a', sum),
         )
     columns = options.columns or 'map count avgpss pss'
@@ -356,8 +350,6 @@ def showtable(rows, fields, columns, sort):
             values.insert(0, unused)
             labels.insert(0, 'unused')
             explode.insert(0, .05)
-
-        print len(values), len(labels), len(explode)
 
         pylab.figure(1, figsize=(6,6))
         ax = pylab.axes([0.1, 0.1, 0.8, 0.8])
