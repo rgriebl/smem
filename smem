@@ -1,18 +1,25 @@
 #!/usr/bin/python
-import re, os, sys, pwd, grp, optparse, errno
+import re, os, sys, pwd, grp, optparse, errno, tarfile
 
 _ucache = {}
 _gcache = {}
 
 class procdata(object):
-    def pids(self):
-        '''get a list of processes'''
-        return [int(e) for e in os.listdir("/proc")
-                if e.isdigit() and not iskernel(e)]
+    def __init__(self, source):
+        self.source = source and source or ""
+    def _list(self):
+        return os.listdir(self.source + "/proc")
     def _read(self, f):
-        return file('/proc/' + f).read()
+        return file(self.source + '/proc/' + f).read()
     def _readlines(self, f):
         return self._read(f).splitlines(True)
+    def _stat(self, f):
+        return os.stat(self.source + "/proc/" + f)
+
+    def pids(self):
+        '''get a list of processes'''
+        return [int(e) for e in self._list()
+                if e.isdigit() and not iskernel(e)]
     def mapdata(self, pid):
         return self._readlines('%s/smaps' % pid)
     def memdata(self):
@@ -24,9 +31,9 @@ class procdata(object):
         c = self._read('%s/cmdline' % pid)[:-1]
         return c.replace('\0', ' ')
     def piduser(self, pid):
-        return os.stat('/proc/%d/cmdline' % pid).st_uid
+        return self._stat('%d/cmdline' % pid).st_uid
     def pidgroup(self, pid):
-        return os.stat('/proc/%d/cmdline' % pid).st_gid
+        return self._stat('%d/cmdline' % pid).st_gid
     def username(self, uid):
         if uid not in _ucache:
             _ucache[uid] = pwd.getpwuid(uid)[0]
@@ -35,6 +42,23 @@ class procdata(object):
         if gid not in _gcache:
             _gcache[gid] = pwd.getgrgid(gid)[0]
         return _gcache[gid]
+
+class tardata(procdata):
+    def __init__(self, source):
+        self.source = source
+        self.tar = tarfile.open(source)
+    def _list(self):
+        for ti in self.tar:
+            if ti.name.endswith('/'):
+                yield ti.name[:-1]
+    def _read(self, f):
+        return self.tar.extractfile(f).read()
+    def _readlines(self, f):
+        return self.tar.extractfile(f).readlines()
+    def piduser(self, p):
+        return self.tar.getmember("%s/cmdline" % p).uid
+    def pidgroup(self, p):
+        return self.tar.getmember("%s/cmdline" % p).gid
 
 _totalmem = 0
 def totalmem():
@@ -417,12 +441,17 @@ parser.add_option("", "--pie", type='str',
 parser.add_option("", "--bar", type='str',
                   help="show bar graph")
 
+parser.add_option("-S", "--source", type="str",
+                  help="/proc data source")
 
 defaults = {}
 parser.set_defaults(**defaults)
 (options, args) = parser.parse_args()
 
-src = procdata()
+try:
+    src = tardata(options.source)
+except:
+    src = procdata(options.source)
 
 try:
     if options.mappings:
