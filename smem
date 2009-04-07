@@ -200,16 +200,26 @@ def showpids():
         return pidusername(p)
 
     fields = dict(
-        pid=('PID', lambda n: n, '% 5s', lambda x: len(p)),
-        user=('User', showuser, '%-8s', lambda x: len(dict.fromkeys(x))),
-        name=('Name', src.pidname, '%-24.24s', None),
-        command=('Command', src.pidcmd, '%-27.27s', None),
-        maps=('Maps',lambda n: pt[n]['maps'], '% 5s', sum),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
-        uss=('USS', lambda n: pt[n]['uss'], '% 8a', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
-        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
+        pid=('PID', lambda n: n, '% 5s', lambda x: len(p),
+             'process ID'),
+        user=('User', showuser, '%-8s', lambda x: len(dict.fromkeys(x)),
+              'owner of process'),
+        name=('Name', src.pidname, '%-24.24s', None,
+              'name of process'),
+        command=('Command', src.pidcmd, '%-27.27s', None,
+                 'process command line'),
+        maps=('Maps',lambda n: pt[n]['maps'], '% 5s', sum,
+              'total number of mappings'),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum,
+              'amount of swap space consumed (ignoring sharing)'),
+        uss=('USS', lambda n: pt[n]['uss'], '% 8a', sum,
+             'unique set size'),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum,
+             'resident set size (ignoring sharing)'),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum,
+             'proportional set size (including sharing)'),
+        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum,
+             'virtual set size (total virtual memory mapped)'),
         )
     columns = options.columns or 'pid user command swap uss pss rss'
 
@@ -249,21 +259,32 @@ def showmaps():
     pt = maptotals(p)
 
     fields = dict(
-        map=('Map', lambda n: n, '%-40.40s', len),
-        count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
-        pids=('PIDs', lambda n: pt[n]['pids'], '% 5s', sum),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
+        map=('Map', lambda n: n, '%-40.40s', len,
+             'mapping name'),
+        count=('Count', lambda n: pt[n]['count'], '% 5s', sum,
+               'number of mappings found'),
+        pids=('PIDs', lambda n: pt[n]['pids'], '% 5s', sum,
+              'number of PIDs using mapping'),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum,
+              'amount of swap space consumed (ignoring sharing)'),
         uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8a', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
-        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum),
+             + pt[n]['private_dirty'], '% 8a', sum,
+             'unique set size'),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum,
+             'resident set size (ignoring sharing)'),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum,
+             'proportional set size (including sharing)'),
+        vss=('VSS', lambda n: pt[n]['size'], '% 8a', sum,
+             'virtual set size (total virtual address space mapped)'),
         avgpss=('AVGPSS', lambda n: int(1.0 * pt[n]['pss']/pt[n]['pids']),
-                '% 8a', sum),
+                '% 8a', sum,
+                'average PSS per PID'),
         avguss=('AVGUSS', lambda n: int(1.0 * pt[n]['uss']/pt[n]['pids']),
-                '% 8a', sum),
+                '% 8a', sum,
+                'average USS per PID'),
         avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['pids']),
-                '% 8a', sum),
+                '% 8a', sum,
+                'average RSS per PID'),
         )
     columns = options.columns or 'map pids avgpss pss'
 
@@ -307,22 +328,40 @@ def showusers():
         return username(u)
 
     fields = dict(
-        user=('User', showuser, '%-8s', None),
-        count=('Count', lambda n: pt[n]['count'], '% 5s', sum),
-        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum),
+        user=('User', showuser, '%-8s', None,
+              'user name or ID'),
+        count=('Count', lambda n: pt[n]['count'], '% 5s', sum,
+               'number of processes'),
+        swap=('Swap',lambda n: pt[n]['swap'], '% 8a', sum,
+              'amount of swapspace consumed (ignoring sharing)'),
         uss=('USS', lambda n: pt[n]['private_clean']
-             + pt[n]['private_dirty'], '% 8a', sum),
-        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum),
-        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum),
+             + pt[n]['private_dirty'], '% 8a', sum,
+             'unique set size'),
+        rss=('RSS', lambda n: pt[n]['rss'], '% 8a', sum,
+             'resident set size (ignoring sharing)'),
+        pss=('PSS', lambda n: pt[n]['pss'], '% 8a', sum,
+             'proportional set size (including sharing)'),
+        vss=('VSS', lambda n: pt[n]['pss'], '% 8a', sum,
+             'virtual set size (total virtual memory mapped)'),
         )
     columns = options.columns or 'user count swap uss pss rss'
 
     showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
+def showfields(fields, f):
+    print "unknown field", f
+    print "known fields:"
+    for l in sorted(fields.keys()):
+        print "%-8s %s" % (l, fields[l][-1])
+
 def showtable(rows, fields, columns, sort):
     header = ""
     format = ""
     formatter = []
+
+    if sort not in fields:
+            showfields(fields, sort)
+            sys.exit(-1)
 
     if options.pie:
         columns.append(options.pie)
@@ -330,6 +369,10 @@ def showtable(rows, fields, columns, sort):
         columns.append(options.bar)
 
     for n in columns:
+        if n not in fields:
+            showfields(fields, n)
+            sys.exit(-1)
+
         f = fields[n][2]
         if 'a' in f:
             formatter.append(showamount)
