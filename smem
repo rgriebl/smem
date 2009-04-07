@@ -265,7 +265,7 @@ def showmaps():
         avgrss=('AVGRSS', lambda n: int(1.0 * pt[n]['rss']/pt[n]['pids']),
                 '% 8a', sum),
         )
-    columns = options.columns or 'map count avgpss pss'
+    columns = options.columns or 'map pids avgpss pss'
 
     showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
