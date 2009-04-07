@@ -390,7 +390,8 @@ def showsystem():
     showtable(range(len(l)), fields, columns.split(), options.sort or 'order')
 
 def showfields(fields, f):
-    print "unknown field", f
+    if f != list:
+        print "unknown field", f
     print "known fields:"
     for l in sorted(fields.keys()):
         print "%-8s %s" % (l, fields[l][-1])
@@ -521,11 +522,14 @@ def showbar(l, columns, sort):
     width = 1.0 / (len(rc) + 1)
     offset = width / 2
 
+    def gc(n):
+        return 'bgrcmyw'[n % 7]
+
     pl = []
     ind = numpy.arange(len(l))
     for n in xrange(len(rc)):
         pl.append(pylab.bar(ind + offset + width * n,
-                             [x[1][rc[n]] for x in l], width))
+                             [x[1][rc[n]] for x in l], width, color=gc(n)))
 
     #plt.xticks(ind + .5, )
     pylab.legend([p[0] for p in pl], key)
