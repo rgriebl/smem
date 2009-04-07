@@ -68,7 +68,15 @@ def totalmem():
             _totalmem = fromunits(options.realmem)
         else:
             _totalmem = memory()['memtotal']
-    return _totalmem
+    return _totalmem / 1024
+
+_kernelsize = 0
+def kernelsize():
+    global _kernelsize
+    if not _kernelsize and options.kernel:
+        d = os.popen("size %s" % options.kernel).readlines()[1]
+        _kernelsize = float(d.split()[3]) / 1024
+    return _kernelsize
 
 def pidmaps(pid):
     maps = {}
@@ -112,7 +120,7 @@ def memory():
     for l in src.memdata():
         m = f.match(l)
         if m:
-            t[m.group(1).lower()] = int(m.group(2)) * 1024
+            t[m.group(1).lower()] = int(m.group(2))
     return t
 
 def units(x):
@@ -151,7 +159,7 @@ def showamount(a):
     if options.abbreviate:
         return units(a * 1024)
     elif options.percent:
-        return "%.2f%%" % (102400.0 * a / totalmem())
+        return "%.2f%%" % (100.0 * a / totalmem())
     return a
 
 def filter(opt, arg, *sources):
@@ -348,6 +356,39 @@ def showusers():
 
     showtable(pt.keys(), fields, columns.split(), options.sort or 'pss')
 
+def showsystem():
+    t = totalmem()
+    k = kernelsize()
+    m = memory()
+    mt = m['memtotal']
+    fh = t - mt - k
+    f = m['memfree']
+    u = m['anonpages'] + m['mapped']
+    kd = mt - f - u
+    kdd = (m['buffers'] + m['sreclaimable'] +
+           (m['cached'] - m['anonpages']))
+
+    l = [("firmware/hardware", fh, 0),
+         ("kernel image", k, 0),
+         ("kernel dynamic memory", kd, kdd),
+         ("userspace memory", u, m['mapped']),
+         ("free memory", f, f)]
+
+    fields = dict(
+        order=('Order', lambda n: n, '% 1s', lambda x: len(p),
+             'hierarchical order'),
+        area=('Area', lambda n: l[n][0], '%-24s', lambda x: len(l),
+             'memory area'),
+        used=('Used', lambda n: l[n][1], '%10a', sum,
+              'area in use'),
+        cache=('Cache', lambda n: l[n][2], '%10a', sum,
+              'area used as reclaimable cache'),
+        noncache=('Noncache', lambda n: l[n][1] - l[n][2], '%10a', sum,
+              'area not reclaimable'))
+
+    columns = options.columns or 'area used cache noncache'
+    showtable(range(len(l)), fields, columns.split(), options.sort or 'order')
+
 def showfields(fields, f):
     print "unknown field", f
     print "known fields:"
@@ -426,7 +467,7 @@ def showpie(l, sort):
     labels = [r[1][-1] for r in l]
     values = [r[0] for r in l] # sort field
 
-    tm = totalmem() / 1024
+    tm = totalmem()
     s = sum(values)
     unused = tm - s
     t = 0
@@ -493,13 +534,17 @@ parser.add_option("-c", "--columns", type="str",
 parser.add_option("-t", "--totals", action="store_true",
                   help="show totals")
 
-parser.add_option("", "--realmem", type="str",
+parser.add_option("-R", "--realmem", type="str",
                   help="amount of physical RAM")
+parser.add_option("-K", "--kernel", type="str",
+                  help="path to kernel image")
 
 parser.add_option("-m", "--mappings", action="store_true",
                   help="show mappings")
 parser.add_option("-u", "--users", action="store_true",
                   help="show users")
+parser.add_option("-w", "--system", action="store_true",
+                  help="show whole system")
 
 parser.add_option("-P", "--processfilter", type="str",
                   help="process filter regex")
@@ -528,6 +573,7 @@ parser.add_option("", "--bar", type='str',
 parser.add_option("-S", "--source", type="str",
                   help="/proc data source")
 
+
 defaults = {}
 parser.set_defaults(**defaults)
 (options, args) = parser.parse_args()
@@ -542,6 +588,8 @@ try:
         showmaps()
     elif options.users:
         showusers()
+    elif options.system:
+        showsystem()
     else:
         showpids()
 except IOError, e:
