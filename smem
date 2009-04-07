@@ -535,7 +535,7 @@ def showbar(l, columns, sort):
 
     #plt.xticks(ind + .5, )
     pylab.gca().set_xticks(ind + .5)
-    pylab.gca().set_xticklabels([x[1][-1] for x in l], rotation=90)
+    pylab.gca().set_xticklabels([x[1][-1] for x in l], rotation=45)
     pylab.legend([p[0] for p in pl], key)
     pylab.show()
 
@@ -608,3 +608,5 @@ try:
 except IOError, e:
     if e.errno == errno.EPIPE:
         pass
+except KeyboardInterrupt:
+    pass
