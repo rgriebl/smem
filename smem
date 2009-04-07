@@ -365,8 +365,6 @@ def showtable(rows, fields, columns, sort):
 
     if options.pie:
         columns.append(options.pie)
-    if options.bar:
-        columns.append(options.bar)
 
     for n in columns:
         if n not in fields:
@@ -392,6 +390,9 @@ def showtable(rows, fields, columns, sort):
     if options.pie:
         showpie(l, sort)
         return
+    elif options.bar:
+        showbar(l, columns, sort)
+        return
 
     if not options.no_header:
         print header
@@ -413,13 +414,14 @@ def showtable(rows, fields, columns, sort):
         print format % tuple([f(v) for f,v in zip(formatter, t)])
 
 def showpie(l, sort):
-    if (l[0][0] < l[-1][0]):
-        l.reverse()
     try:
         import pylab
     except ImportError:
         sys.stderr.write("pie chart requires matplotlib\n")
         sys.exit(-1)
+
+    if (l[0][0] < l[-1][0]):
+        l.reverse()
 
     labels = [r[1][-1] for r in l]
     values = [r[0] for r in l] # sort field
@@ -446,6 +448,41 @@ def showpie(l, sort):
     pylab.pie(values, explode = explode, labels=labels,
               autopct="%.2f%%", shadow=True)
     pylab.title('%s by %s' % (options.pie, sort))
+    pylab.show()
+
+def showbar(l, columns, sort):
+    try:
+        import pylab, numpy
+    except ImportError:
+        sys.stderr.write("bar chart requires matplotlib\n")
+        sys.exit(-1)
+
+    if (l[0][0] < l[-1][0]):
+        l.reverse()
+
+    rc = []
+    key = []
+    for n in range(len(columns)):
+        try:
+            if columns[n] in 'pid user group'.split():
+                continue
+            float(l[0][1][n])
+            rc.append(n)
+            key.append(columns[n])
+        except:
+            pass
+
+    width = 1.0 / (len(rc) + 1)
+    offset = width / 2
+
+    pl = []
+    ind = numpy.arange(len(l))
+    for n in xrange(len(rc)):
+        pl.append(pylab.bar(ind + offset + width * n,
+                             [x[1][rc[n]] for x in l], width))
+
+    #plt.xticks(ind + .5, )
+    pylab.legend([p[0] for p in pl], key)
     pylab.show()
 
 parser = optparse.OptionParser("%prog [options]")
