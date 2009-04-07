@@ -75,7 +75,7 @@ def kernelsize():
     global _kernelsize
     if not _kernelsize and options.kernel:
         d = os.popen("size %s" % options.kernel).readlines()[1]
-        _kernelsize = float(d.split()[3]) / 1024
+        _kernelsize = int(d.split()[3]) / 1024
     return _kernelsize
 
 def pidmaps(pid):
@@ -471,10 +471,15 @@ def showpie(l, sort):
     s = sum(values)
     unused = tm - s
     t = 0
-    while t + values[-1] < (tm * .02) or values[-1] < (tm * .005):
+    c = 0
+    while values and (t + values[-1 - c] < (tm * .02) or
+                      values[-1 - c] < (tm * .005)):
+        c += 1
         t += values.pop()
         labels.pop()
-    if t:
+    if c > 1:
+        values = values[:-c]
+        labels = labels[:-c]
         values.append(t)
         labels.append('other')
 
