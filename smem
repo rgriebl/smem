@@ -407,6 +407,8 @@ def showtable(rows, fields, columns, sort):
 
     if options.pie:
         columns.append(options.pie)
+    if options.bar:
+        columns.append(options.bar)
 
     for n in columns:
         if n not in fields:
@@ -509,7 +511,7 @@ def showbar(l, columns, sort):
 
     rc = []
     key = []
-    for n in range(len(columns)):
+    for n in range(len(columns) - 1):
         try:
             if columns[n] in 'pid user group'.split():
                 continue
@@ -532,6 +534,8 @@ def showbar(l, columns, sort):
                              [x[1][rc[n]] for x in l], width, color=gc(n)))
 
     #plt.xticks(ind + .5, )
+    pylab.gca().set_xticks(ind + .5)
+    pylab.gca().set_xticklabels([x[1][-1] for x in l], rotation=90)
     pylab.legend([p[0] for p in pl], key)
     pylab.show()
 
