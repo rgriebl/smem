@@ -548,6 +548,13 @@ def showbar(l, columns, sort):
     pylab.legend([p[0] for p in pl], key)
     pylab.show()
 
+def kernel_version_check():
+    kernel_release = os.uname()[2].split('-')[0]
+    if kernel_release < "2.6.27":
+        name = os.path.basename(sys.argv[0])
+        sys.stderr.write(name + " requires a kernel >= 2.6.27\n")
+        sys.exit(-1)
+
 parser = optparse.OptionParser("%prog [options]")
 parser.add_option("-H", "--no-header", action="store_true",
                   help="disable header line")
@@ -596,6 +603,7 @@ parser.add_option("-S", "--source", type="str",
                   help="/proc data source")
 
 
+kernel_version_check()
 defaults = {}
 parser.set_defaults(**defaults)
 (options, args) = parser.parse_args()
