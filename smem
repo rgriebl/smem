@@ -83,8 +83,11 @@ _kernelsize = 0
 def kernelsize():
     global _kernelsize
     if not _kernelsize and options.kernel:
-        d = os.popen("size %s" % options.kernel).readlines()[1]
-        _kernelsize = int(d.split()[3]) / 1024
+        try:
+            d = os.popen("size %s" % options.kernel).readlines()[1]
+            _kernelsize = int(d.split()[3]) / 1024
+        except:
+            pass
     return _kernelsize
 
 def pidmaps(pid):
