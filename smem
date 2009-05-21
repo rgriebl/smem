@@ -216,7 +216,7 @@ def showpids():
 
     def showuser(p):
         if options.numeric:
-            return piduser(p)
+            return src.piduser(p)
         return pidusername(p)
 
     fields = dict(
