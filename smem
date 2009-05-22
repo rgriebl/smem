@@ -60,8 +60,9 @@ class tardata(procdata):
         self.tar = tarfile.open(source)
     def _list(self):
         for ti in self.tar:
-            if ti.name.endswith('/'):
-                yield ti.name[:-1]
+            if ti.name.endswith('/smaps'):
+                d,f = ti.name.split('/')
+                yield d
     def _read(self, f):
         return self.tar.extractfile(f).read()
     def _readlines(self, f):
