@@ -77,7 +77,7 @@ def totalmem():
     global _totalmem
     if not _totalmem:
         if options.realmem:
-            _totalmem = fromunits(options.realmem)
+            _totalmem = fromunits(options.realmem) / 1024
         else:
             _totalmem = memory()['memtotal']
     return _totalmem
@@ -373,26 +373,34 @@ def showusers():
 
 def showsystem():
     t = totalmem()
-    k = kernelsize()
+    ki = kernelsize()
     m = memory()
+
     mt = m['memtotal']
-    fh = t - mt - k
     f = m['memfree']
+
+    # total amount used by hardware
+    fh = max(t - mt - ki, 0)
+
+    # total amount mapped into userspace (ie mapped an unmapped pages)
     u = m['anonpages'] + m['mapped']
+
+    # total amount allocated by kernel not for userspace
     kd = mt - f - u
-    kdd = (m['buffers'] + m['sreclaimable'] +
-           (m['cached'] - m['anonpages']))
+
+    # total amount in kernel caches
+    kdc = m['buffers'] + m['sreclaimable'] + (m['cached'] - m['mapped'])
 
     l = [("firmware/hardware", fh, 0),
-         ("kernel image", k, 0),
-         ("kernel dynamic memory", kd, kdd),
+         ("kernel image", ki, 0),
+         ("kernel dynamic memory", kd, kdc),
          ("userspace memory", u, m['mapped']),
          ("free memory", f, f)]
 
     fields = dict(
-        order=('Order', lambda n: n, '% 1s', lambda x: len(p),
+        order=('Order', lambda n: n, '% 1s', lambda x: '',
              'hierarchical order'),
-        area=('Area', lambda n: l[n][0], '%-24s', lambda x: len(l),
+        area=('Area', lambda n: l[n][0], '%-24s', lambda x: '',
              'memory area'),
         used=('Used', lambda n: l[n][1], '%10a', sum,
               'area in use'),
