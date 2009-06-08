@@ -32,11 +32,11 @@ int writeheader(int destfd, const char *path, int mode, int uid, int gid,
 	memset(header, 0, 512);
 
 	sprintf(header, "%s", path);
-	sprintf(header + 100, "%08o", mode);
-	sprintf(header + 108, "%08o", uid);
-	sprintf(header + 116, "%08o", gid);
-	sprintf(header + 124, "%012o", size);
-	sprintf(header + 136, "%08o", mtime);
+	sprintf(header + 100, "%07o\0", mode & 0777);
+	sprintf(header + 108, "%07o\0", uid);
+	sprintf(header + 116, "%07o\0", gid);
+	sprintf(header + 124, "%011o\0", size);
+	sprintf(header + 136, "%07o\0", mtime);
 	sprintf(header + 148, "        %1d", type);
 
 	/* fix checksum */
@@ -70,8 +70,8 @@ int archivefile(const char *path, int destfd)
 	close(fd);
 
 	/* write archive header */
-	writeheader(destfd, path, s.st_mode, s.st_uid, s.st_gid, size,
-		    s.st_mtime, '0');
+	writeheader(destfd, path, s.st_mode, s.st_uid,
+		    s.st_gid, size, s.st_mtime, 0);
 
 	/* dump file contents */
 	for (cur = start; size > 0; size -= 512) {
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	d = opendir(".");
 	while (de = readdir(d))
 		if (de->d_name[0] >= '0' && de->d_name[0] <= '9') {
-			writeheader(1, de->d_name, 040555, 0, 0, 0, 0, 5);
+			writeheader(1, de->d_name, 0555, 0, 0, 0, 0, 5);
 			archivejoin(de->d_name, "smaps", 1);
 			archivejoin(de->d_name, "cmdline", 1);
 			archivejoin(de->d_name, "stat", 1);
