@@ -10,11 +10,10 @@
 
 import re, os, sys, pwd, grp, optparse, errno, tarfile
 
-_ucache = {}
-_gcache = {}
-
 class procdata(object):
     def __init__(self, source):
+        self._ucache = {}
+        self._gcache = {}
         self.source = source and source or ""
     def _list(self):
         return os.listdir(self.source + "/proc")
@@ -56,7 +55,7 @@ class procdata(object):
 
 class tardata(procdata):
     def __init__(self, source):
-        self.source = source
+        procdata.__init__(self, source)
         self.tar = tarfile.open(source)
     def _list(self):
         for ti in self.tar:
@@ -68,9 +67,19 @@ class tardata(procdata):
     def _readlines(self, f):
         return self.tar.extractfile(f).readlines()
     def piduser(self, p):
-        return self.tar.getmember("%s/cmdline" % p).uid
+        t = self.tar.getmember("%s/cmdline" % p)
+        if t.uname:
+            self._ucache[t.uid] = t.uname
+        return t.uid
     def pidgroup(self, p):
-        return self.tar.getmember("%s/cmdline" % p).gid
+        t = self.tar.getmember("%s/cmdline" % p)
+        if t.gname:
+            self._gcache[t.gid] = t.gname
+        return t.gid
+    def username(self, u):
+        return self._ucache.get(u, str(u))
+    def groupname(self, g):
+        return self._gcache.get(g, str(g))
 
 _totalmem = 0
 def totalmem():
@@ -155,20 +164,8 @@ def fromunits(x):
         if x.endswith(k):
             return int(float(x[:len(k)])*v)
 
-_ucache = {}
-def username(uid):
-    if uid not in _ucache:
-        _ucache[uid] = pwd.getpwuid(uid)[0]
-    return _ucache[uid]
-
 def pidusername(pid):
-    return username(src.piduser(pid))
-
-_gcache = {}
-def groupname(gid):
-    if gid not in _gcache:
-        _gcache[gid] = grp.getgrgid(gid)[0]
-    return _gcache[gid]
+    return src.username(src.piduser(pid))
 
 def showamount(a):
     if options.abbreviate:
@@ -348,7 +345,7 @@ def showusers():
     def showuser(u):
         if options.numeric:
             return u
-        return username(u)
+        return src.username(u)
 
     fields = dict(
         user=('User', showuser, '%-8s', None,
