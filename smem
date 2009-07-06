@@ -46,12 +46,12 @@ class procdata(object):
         return self._stat('%d/cmdline' % pid).st_gid
     def username(self, uid):
         if uid not in _ucache:
-            _ucache[uid] = pwd.getpwuid(uid)[0]
-        return _ucache[uid]
+            self._ucache[uid] = pwd.getpwuid(uid)[0]
+        return self._ucache[uid]
     def groupname(self, gid):
-        if gid not in _gcache:
-            _gcache[gid] = pwd.getgrgid(gid)[0]
-        return _gcache[gid]
+        if gid not in self._gcache:
+            self._gcache[gid] = pwd.getgrgid(gid)[0]
+        return self._gcache[gid]
 
 class tardata(procdata):
     def __init__(self, source):
