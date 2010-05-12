@@ -32,17 +32,17 @@ int writeheader(int destfd, const char *path, int mode, int uid, int gid,
 	memset(header, 0, 512);
 
 	sprintf(header, "%s", path);
-	sprintf(header + 100, "%07o\0", mode & 0777);
-	sprintf(header + 108, "%07o\0", uid);
-	sprintf(header + 116, "%07o\0", gid);
-	sprintf(header + 124, "%011o\0", size);
-	sprintf(header + 136, "%07o\0", mtime);
+	sprintf(header + 100, "%07o", mode & 0777);
+	sprintf(header + 108, "%07o", uid);
+	sprintf(header + 116, "%07o", gid);
+	sprintf(header + 124, "%011o", size);
+	sprintf(header + 136, "%07o", mtime);
 	sprintf(header + 148, "        %1d", type);
 
 	/* fix checksum */
 	for (i = sum = 0; i < 512; i++)
-		sum += header[i];
-	sprintf(header + 148, "%06o\0 %1d", sum, type);
+               sum += header[i];
+	sprintf(header + 148, "%06o", sum);
 
 	return write(destfd, header, 512);
 }
@@ -91,7 +91,6 @@ int archivejoin(const char *sub, const char *name, int destfd)
 
 int main(int argc, char *argv[])
 {
-	int fd;
 	DIR *d;
 	struct dirent *de;
 
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
 	archivefile("version", 1);
 
 	d = opendir(".");
-	while (de = readdir(d))
+	while ((de = readdir(d)))
 		if (de->d_name[0] >= '0' && de->d_name[0] <= '9') {
 			writeheader(1, de->d_name, 0555, 0, 0, 0, 0, 5);
 			archivejoin(de->d_name, "smaps", 1);
