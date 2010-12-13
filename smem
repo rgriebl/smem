@@ -131,8 +131,8 @@ def pidmaps(pid):
     maps = {}
     start = None
     for l in src.mapdata(pid):
-    	f = l.split()
-	if f[-1] == 'kB':
+        f = l.split()
+        if f[-1] == 'kB':
             maps[start][f[0][:-1].lower()] = int(f[1])
         else:
             start, end = f[0].split('-')
