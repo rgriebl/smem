@@ -115,7 +115,16 @@ def kernelsize():
             d = os.popen("size %s" % options.kernel).readlines()[1]
             _kernelsize = int(d.split()[3]) / 1024
         except:
-            pass
+            try:
+                # try some heuristic to find gzipped part in kernel image
+                packedkernel = open(options.kernel).read()
+                pos = packedkernel.find('\x1F\x8B')
+                if pos >= 0 and pos < 25000:
+                    sys.stderr.write("Maybe uncompressed kernel can be extracted by the command:\n"
+                            "  dd if=%s bs=1 skip=%d | gzip -d >%s.unpacked\n\n" % (options.kernel, pos, options.kernel))
+            except:
+                pass
+            sys.stderr.write("Parameter '%s' should be an original uncompressed compiled kernel file.\n\n" % options.kernel)
     return _kernelsize
 
 def pidmaps(pid):
