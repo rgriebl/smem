@@ -35,20 +35,36 @@ class procdata(object):
     def version(self):
         return self._readlines('version')[0]
     def pidname(self, pid):
-        l = self._read('%d/stat' % pid)
-        return l[l.find('(') + 1: l.find(')')]
+        try:
+            l = self._read('%d/stat' % pid)
+            return l[l.find('(') + 1: l.find(')')]
+        except:
+            return '?'
     def pidcmd(self, pid):
-        c = self._read('%s/cmdline' % pid)[:-1]
-        return c.replace('\0', ' ')
+        try:
+            c = self._read('%s/cmdline' % pid)[:-1]
+            return c.replace('\0', ' ')
+        except:
+            return '?'
     def piduser(self, pid):
-        return self._stat('%d/cmdline' % pid).st_uid
+        try:
+            return self._stat('%d/cmdline' % pid).st_uid
+        except:
+            return -1
     def pidgroup(self, pid):
-        return self._stat('%d/cmdline' % pid).st_gid
+        try:
+            return self._stat('%d/cmdline' % pid).st_gid
+        except:
+            return -1
     def username(self, uid):
+        if uid == -1:
+            return '?'
         if uid not in self._ucache:
             self._ucache[uid] = pwd.getpwuid(uid)[0]
         return self._ucache[uid]
     def groupname(self, gid):
+        if gid == -1:
+            return '?'
         if gid not in self._gcache:
             self._gcache[gid] = pwd.getgrgid(gid)[0]
         return self._gcache[gid]
