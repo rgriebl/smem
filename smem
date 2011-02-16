@@ -521,15 +521,12 @@ def showpie(l, sort):
     s = sum(values)
     unused = tm - s
     t = 0
-    c = 0
-    while values and (t + values[-1 - c] < (tm * .02) or
-                      values[-1 - c] < (tm * .005)):
-        c += 1
+    while values and (t + values[-1] < (tm * .02) or
+                      values[-1] < (tm * .005)):
         t += values.pop()
         labels.pop()
-    if c > 1:
-        values = values[:-c]
-        labels = labels[:-c]
+
+    if t:
         values.append(t)
         labels.append('other')
 
