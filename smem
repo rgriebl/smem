@@ -176,7 +176,7 @@ def units(x):
     s = ''
     if x == 0:
         return '0'
-    for s in ('', 'K', 'M', 'G'):
+    for s in ('', 'K', 'M', 'G', 'T'):
         if x < 1024:
             break
         x /= 1024.0
@@ -184,7 +184,8 @@ def units(x):
 
 def fromunits(x):
     s = dict(k=2**10, K=2**10, kB=2**10, KB=2**10,
-             M=2**20, MB=2**20, G=2**30, GB=2**30)
+             M=2**20, MB=2**20, G=2**30, GB=2**30,
+             T=2**40, TB=2**40)
     for k,v in s.items():
         if x.endswith(k):
             return int(float(x[:-len(k)])*v)
