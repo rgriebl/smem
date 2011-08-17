@@ -10,6 +10,8 @@
 
 import re, os, sys, pwd, grp, optparse, errno, tarfile
 
+warned = False
+
 class procdata(object):
     def __init__(self, source):
         self._ucache = {}
@@ -128,11 +130,15 @@ def kernelsize():
     return _kernelsize
 
 def pidmaps(pid):
+    global warned
     maps = {}
     start = None
+    seen = False
     for l in src.mapdata(pid):
         f = l.split()
         if f[-1] == 'kB':
+            if f[0].startswith('Pss'):
+                seen = True
             maps[start][f[0][:-1].lower()] = int(f[1])
         else:
             start, end = f[0].split('-')
@@ -143,6 +149,10 @@ def pidmaps(pid):
             maps[start] = dict(end=int(end, 16), mode=f[1],
                                offset=int(f[2], 16),
                                device=f[3], inode=f[4], name=name)
+
+    if not seen and not warned:
+        sys.stderr.write('warning: kernel does not appear to support PSS measurement\n')
+        warned = True
 
     if options.mapfilter:
         f = {}
@@ -584,12 +594,6 @@ def showbar(l, columns, sort):
     pylab.legend([p[0] for p in pl], key)
     pylab.show()
 
-def kernel_version_check():
-    kernel_release = src.version().split()[2].split('-')[0]
-    if kernel_release < "2.6.27":
-        name = os.path.basename(sys.argv[0])
-        sys.stderr.write(name + " requires a kernel >= 2.6.27\n")
-        sys.exit(-1)
 
 parser = optparse.OptionParser("%prog [options]")
 parser.add_option("-H", "--no-header", action="store_true",
@@ -647,8 +651,6 @@ try:
     src = tardata(options.source)
 except:
     src = procdata(options.source)
-
-kernel_version_check()
 
 try:
     if options.mappings:
