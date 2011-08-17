@@ -62,13 +62,19 @@ class procdata(object):
         if uid == -1:
             return '?'
         if uid not in self._ucache:
-            self._ucache[uid] = pwd.getpwuid(uid)[0]
+            try:
+                self._ucache[uid] = pwd.getpwuid(uid)[0]
+            except KeyError:
+                self._ucache[uid] = uid
         return self._ucache[uid]
     def groupname(self, gid):
         if gid == -1:
             return '?'
         if gid not in self._gcache:
-            self._gcache[gid] = pwd.getgrgid(gid)[0]
+            try:
+                self._gcache[gid] = pwd.getgrgid(gid)[0]
+            except KeyError:
+                self._gcache[gid] = gid
         return self._gcache[gid]
 
 class tardata(procdata):
