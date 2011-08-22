@@ -65,7 +65,7 @@ class procdata(object):
             try:
                 self._ucache[uid] = pwd.getpwuid(uid)[0]
             except KeyError:
-                self._ucache[uid] = uid
+                self._ucache[uid] = str(uid)
         return self._ucache[uid]
     def groupname(self, gid):
         if gid == -1:
@@ -74,7 +74,7 @@ class procdata(object):
             try:
                 self._gcache[gid] = pwd.getgrgid(gid)[0]
             except KeyError:
-                self._gcache[gid] = gid
+                self._gcache[gid] = str(gid)
         return self._gcache[gid]
 
 class tardata(procdata):
