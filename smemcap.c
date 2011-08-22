@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 {
 	DIR *d;
 	struct dirent *de;
+	struct stat s;
 
 	chdir("/proc");
 	archivefile("meminfo", 1);
@@ -101,7 +102,9 @@ int main(int argc, char *argv[])
 	d = opendir(".");
 	while ((de = readdir(d)))
 		if (de->d_name[0] >= '0' && de->d_name[0] <= '9') {
-			writeheader(1, de->d_name, 0555, 0, 0, 0, 0, 5);
+			stat (de->d_name, &s);
+			writeheader(1, de->d_name, 0555, s.st_uid,
+				    s.st_gid, 0, s.st_mtime, 5);
 			archivejoin(de->d_name, "smaps", 1);
 			archivejoin(de->d_name, "cmdline", 1);
 			archivejoin(de->d_name, "stat", 1);
