@@ -50,12 +50,12 @@ class procdata(object):
             return '?'
     def piduser(self, pid):
         try:
-            return self._stat('%d/task' % pid).st_uid
+            return self._stat('%d' % pid).st_uid
         except:
             return -1
     def pidgroup(self, pid):
         try:
-            return self._stat('%d/task' % pid).st_gid
+            return self._stat('%d' % pid).st_gid
         except:
             return -1
     def username(self, uid):
@@ -91,12 +91,12 @@ class tardata(procdata):
     def _readlines(self, f):
         return self.tar.extractfile(f).readlines()
     def piduser(self, p):
-        t = self.tar.getmember("%s/task" % p)
+        t = self.tar.getmember("%d/" % p)
         if t.uname:
             self._ucache[t.uid] = t.uname
         return t.uid
     def pidgroup(self, p):
-        t = self.tar.getmember("%s/task" % p)
+        t = self.tar.getmember("%d/" % p)
         if t.gname:
             self._gcache[t.gid] = t.gname
         return t.gid
