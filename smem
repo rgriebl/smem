@@ -159,6 +159,8 @@ def pidmaps(pid):
     if not seen and not warned:
         sys.stderr.write('warning: kernel does not appear to support PSS measurement\n')
         warned = True
+        if not options.sort:
+            options.sort = 'rss'
 
     if options.mapfilter:
         f = {}
