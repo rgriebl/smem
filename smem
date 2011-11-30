@@ -316,8 +316,8 @@ def maptotals(pids):
                     t['pids'] += 1
                     seen[name] = 1
                 totals[name] = t
-        except:
-            raise
+        except EnvironmentError:
+            continue
     return totals
 
 def showmaps():
@@ -366,8 +366,8 @@ def usertotals(pids):
             maps = pidmaps(pid)
             if len(maps) == 0:
                 continue
-        except:
-            raise
+        except EnvironmentError:
+            continue
         user = src.piduser(pid)
         if user not in totals:
             t = dict(size=0, rss=0, pss=0, shared_clean=0,
