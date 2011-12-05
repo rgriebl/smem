@@ -17,6 +17,7 @@ class procdata(object):
         self._ucache = {}
         self._gcache = {}
         self.source = source and source or ""
+        self._memdata = None
     def _list(self):
         return os.listdir(self.source + "/proc")
     def _read(self, f):
@@ -33,7 +34,9 @@ class procdata(object):
     def mapdata(self, pid):
         return self._readlines('%s/smaps' % pid)
     def memdata(self):
-        return self._readlines('meminfo')
+        if self._memdata is None:
+            self._memdata = self._readlines('meminfo')
+        return self._memdata
     def version(self):
         return self._readlines('version')[0]
     def pidname(self, pid):
