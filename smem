@@ -216,11 +216,11 @@ def fromunits(x):
 def pidusername(pid):
     return src.username(src.piduser(pid))
 
-def showamount(a):
+def showamount(a, total):
     if options.abbreviate:
         return units(a * 1024)
     elif options.percent:
-        return "%.2f%%" % (100.0 * a / totalmem())
+        return "%.2f%%" % (100.0 * a / total)
     return a
 
 def filter(opt, arg, *sources):
@@ -479,6 +479,9 @@ def showtable(rows, fields, columns, sort):
     if options.bar:
         columns.append(options.bar)
 
+    mt = totalmem()
+    st = memory()['swaptotal']
+
     for n in columns:
         if n not in fields:
             showfields(fields, n)
@@ -486,7 +489,10 @@ def showtable(rows, fields, columns, sort):
 
         f = fields[n][2]
         if 'a' in f:
-            formatter.append(showamount)
+            if n == 'swap':
+                formatter.append(lambda x: showamount(x, st))
+            else:
+                formatter.append(lambda x: showamount(x, mt))
             f = f.replace('a', 's')
         else:
             formatter.append(lambda x: x)
