@@ -149,7 +149,7 @@ def pidmaps(pid):
             if f[0].startswith('Pss'):
                 seen = True
             maps[start][f[0][:-1].lower()] = int(f[1])
-        else:
+        elif '-' in f[0] and ':' not in f[0]: # looks like a mapping range
             start, end = f[0].split('-')
             start = int(start, 16)
             name = "<anonymous>"
