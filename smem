@@ -143,7 +143,9 @@ def pidmaps(pid):
     maps = {}
     start = None
     seen = False
+    empty = True
     for l in src.mapdata(pid):
+        empty = False
         f = l.split()
         if f[-1] == 'kB':
             if f[0].startswith('Pss'):
@@ -159,7 +161,7 @@ def pidmaps(pid):
                                offset=int(f[2], 16),
                                device=f[3], inode=f[4], name=name)
 
-    if not seen and not warned:
+    if not empty and not seen and not warned:
         sys.stderr.write('warning: kernel does not appear to support PSS measurement\n')
         warned = True
         if not options.sort:
