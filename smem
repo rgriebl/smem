@@ -8,7 +8,7 @@
 # the GNU General Public License version 2 or later, incorporated
 # herein by reference.
 
-import re, os, sys, pwd, grp, optparse, errno, tarfile
+import re, os, sys, pwd, optparse, errno, tarfile
 
 warned = False
 
