@@ -222,6 +222,8 @@ def showamount(a, total):
     if options.abbreviate:
         return units(a * 1024)
     elif options.percent:
+        if total == 0:
+            return 'N/A'
         return "%.2f%%" % (100.0 * a / total)
     return a
 
