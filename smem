@@ -170,7 +170,7 @@ def pidmaps(pid):
     if options.mapfilter:
         f = {}
         for m in maps:
-            if not filter(options.mapfilter, m, lambda x: maps[x]['name']):
+            if not filters(options.mapfilter, m, lambda x: maps[x]['name']):
                 f[m] = maps[m]
         return f
 
@@ -227,7 +227,7 @@ def showamount(a, total):
         return "%.2f%%" % (100.0 * a / total)
     return a
 
-def filter(opt, arg, *sources):
+def filters(opt, arg, *sources):
     if not opt:
         return False
 
@@ -252,8 +252,8 @@ def pidtotals(pid):
 def processtotals(pids):
     totals = {}
     for pid in pids:
-        if (filter(options.processfilter, pid, src.pidname, src.pidcmd) or
-                filter(options.userfilter, pid, pidusername)):
+        if (filters(options.processfilter, pid, src.pidname, src.pidcmd) or
+                filters(options.userfilter, pid, pidusername)):
             continue
         try:
             p = pidtotals(pid)
@@ -301,8 +301,8 @@ def showpids():
 def maptotals(pids):
     totals = {}
     for pid in pids:
-        if (filter(options.processfilter, pid, src.pidname, src.pidcmd) or
-                filter(options.userfilter, pid, pidusername)):
+        if (filters(options.processfilter, pid, src.pidname, src.pidcmd) or
+                filters(options.userfilter, pid, pidusername)):
             continue
         try:
             maps = pidmaps(pid)
@@ -366,8 +366,8 @@ def showmaps():
 def usertotals(pids):
     totals = {}
     for pid in pids:
-        if (filter(options.processfilter, pid, src.pidname, src.pidcmd) or
-                filter(options.userfilter, pid, pidusername)):
+        if (filters(options.processfilter, pid, src.pidname, src.pidcmd) or
+                filters(options.userfilter, pid, pidusername)):
             continue
         try:
             maps = pidmaps(pid)
