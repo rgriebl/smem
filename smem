@@ -463,7 +463,9 @@ def showsystem():
     showtable(range(len(l)), fields, columns.split(), options.sort or 'order')
 
 def showfields(fields, f):
-    if f != list:
+    if type(f) in (list, set):
+        print "unknown fields:", " ".join(f)
+    else:
         print "unknown field", f
     print "known fields:"
     for l in sorted(fields.keys()):
@@ -486,11 +488,12 @@ def showtable(rows, fields, columns, sort):
     mt = totalmem()
     st = memory()['swaptotal']
 
-    for n in columns:
-        if n not in fields:
-            showfields(fields, n)
-            sys.exit(-1)
+    missing = set(columns) - set(fields)
+    if len(missing) > 0:
+        showfields(fields, missing)
+        sys.exit(-1)
 
+    for n in columns:
         f = fields[n][2]
         if 'a' in f:
             if n == 'swap':
