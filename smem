@@ -725,7 +725,8 @@ try:
         showsystem()
     else:
         showpids()
-except IOError, e:
+except IOError:
+    _, e, _ = sys.exc_info()
     if e.errno == errno.EPIPE:
         pass
 except KeyboardInterrupt:
