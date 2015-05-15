@@ -240,7 +240,7 @@ def pidtotals(pid):
     maps = pidmaps(pid)
     t = dict(size=0, rss=0, pss=0, shared_clean=0, shared_dirty=0,
              private_clean=0, private_dirty=0, referenced=0, swap=0)
-    for m in maps.iterkeys():
+    for m in maps:
         for k in t:
             t[k] += maps[m].get(k, 0)
 
@@ -307,7 +307,7 @@ def maptotals(pids):
         try:
             maps = pidmaps(pid)
             seen = {}
-            for m in maps.iterkeys():
+            for m in maps:
                 name = maps[m]['name']
                 if name not in totals:
                     t = dict(size=0, rss=0, pss=0, shared_clean=0,
@@ -383,7 +383,7 @@ def usertotals(pids):
         else:
             t = totals[user]
 
-        for m in maps.iterkeys():
+        for m in maps:
             for k in t:
                 t[k] += maps[m].get(k, 0)
 
