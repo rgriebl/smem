@@ -620,6 +620,7 @@ def showpie(l, sort):
     pylab.pie(values, explode = explode, labels=labels,
               autopct="%.2f%%", shadow=True)
     pylab.title('%s by %s' % (options.pie, sort))
+    pylab.legend()
     pylab.show()
 
 def showbar(l, columns, sort):
