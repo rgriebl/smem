@@ -90,9 +90,9 @@ class tardata(procdata):
                 d,f = ti.name.split('/')
                 yield d
     def _read(self, f):
-        return self.tar.extractfile(f).read()
+        return self.tar.extractfile(f).read().decode()
     def _readlines(self, f):
-        return self.tar.extractfile(f).readlines()
+        return list(map(lambda x: x.decode(), self.tar.extractfile(f).readlines()))
     def piduser(self, p):
         t = self.tar.getmember("%d" % p)
         if t.uname:
