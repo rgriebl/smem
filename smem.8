@@ -48,7 +48,7 @@ source tree.)
 Amount of physical RAM.  This lets smem detect the amount of memory used
 by firmware/hardware in the systemwide (\-w) output.  If provided, it
 will also be used as the total memory size to base percentages on.
-Example: --realmem=1024M
+Example: \-\-realmem=1024M
 
 .TP
 .BI "\-S " SOURCE ", \-\-source=" SOURCE
@@ -158,25 +158,23 @@ The matplotlib library
 
 .SH EMBEDDED USAGE
 To capture memory statistics on resource\-constrained systems, the
-the \fBsmem\fP source includes a utility named \fBsmemcap\fP.
+the \fBsmemcap\fP package includes a utility named \fBsmemcap\fP.
 \fBsmemcap\fP captures all /proc entries required by \fBsmem\fP
 and outputs them as an uncompressed .tar file to STDOUT.
 \fBsmem\fP can analyze the output using the \fB\-\-source\fP option.
 \fBsmemcap\fP is small and does not require Python.
 .PP
 To use \fBsmemcap\fP:
-.IP 1. 3
-Obtain the smem source at http://selenic.com/repo/smem
+.IP 1. 
+Install package smemcap on target system.
 .IP 2.
-Compile \fIsmemcap.c\fP for your target system.
-.IP 3.
 Run \fBsmemcap\fP on the target system and save the output:
 .br
 smemcap > memorycapture.tar
-.IP 4.
+.IP 3.
 Copy the output to another machine and run smem on it:
 .br
-smem -S memorycapture.tar
+smem \-S memorycapture.tar
 
 .SH FILES
 .I /proc/$pid/cmdline
