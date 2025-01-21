@@ -42,8 +42,14 @@ class procdata(object):
     def pidname(self, pid):
         try:
             l = self._read('%d/stat' % pid)
-            return l[l.find('(') + 1: l.find(')')]
-        except:
+            name = l[l.find('(') + 1: l.find(')')]
+            if name == 'appman-launcher':
+                cmd = self.pidcmd(pid)
+                r = re.compile('^(.*)appman-launcher-qml: ([^\s]+)( --quicklaunch)?')
+                if (r.match(cmd)):
+                    name = "app: " + r.match(cmd).group(2)
+            return name
+        except e:
             return '?'
     def pidcmd(self, pid):
         try:
