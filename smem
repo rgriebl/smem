@@ -273,7 +273,7 @@ def showpids():
         return pidusername(p)
 
     fields = dict(
-        pid=('PID', lambda n: n, '% 5s', lambda x: len(pt),
+        pid=('PID', lambda n: n, '% 7s', lambda x: len(pt),
              'process ID'),
         user=('User', showuser, '%-8s', lambda x: len(dict.fromkeys(x)),
               'owner of process'),
