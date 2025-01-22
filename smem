@@ -45,7 +45,7 @@ class procdata(object):
             name = l[l.find('(') + 1: l.find(')')]
             if name == 'appman-launcher':
                 cmd = self.pidcmd(pid)
-                r = re.compile('^(.*)appman-launcher-qml: ([^\s]+)( --quicklaunch)?')
+                r = re.compile('^(.*)appman-launcher-qml: ([^\\s]+)( --quicklaunch)?')
                 if (r.match(cmd)):
                     name = "app: " + r.match(cmd).group(2)
             return name
