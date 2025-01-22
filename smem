@@ -598,7 +598,8 @@ def showpie(l, sort):
 
     tm = totalmem()
     s = sum(values)
-    unused = tm - s
+    unused = memory()['memfree'] + memory()['buffers'] + memory()['cached'] + memory()['sreclaimable']
+    kernel = tm - s - unused
     t = 0
     while values and (t + values[-1] < (tm * .02) or
                       values[-1] < (tm * .005)):
@@ -614,6 +615,11 @@ def showpie(l, sort):
         values.insert(0, unused)
         labels.insert(0, 'unused')
         explode.insert(0, .05)
+    if kernel > 0:
+        values.insert(0, kernel)
+        labels.insert(0, 'kernel')
+        explode.insert(0, .05)
+
 
     pylab.figure(1, figsize=(6,6))
     ax = pylab.axes([0.1, 0.1, 0.8, 0.8])
